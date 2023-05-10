@@ -29,7 +29,7 @@ extension HBOpenAPITransport {
         queryItemNames: Set<String>
     ) throws {
         self.application.router.on(
-            Self.makeHummingbirdPath(from: path), // path.map(\.hbPathComponent).joined(separator: "/"),
+            Self.makeHummingbirdPath(from: path),
             method: .init(method)
         ) { request in
             let openAPIRequest = try request.makeOpenAPIRequest()
