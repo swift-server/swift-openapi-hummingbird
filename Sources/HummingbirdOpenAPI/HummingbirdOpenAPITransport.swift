@@ -77,8 +77,6 @@ extension HBRequest {
     }
 
     /// Construct ``OpenAPIRuntime.ServerRequestMetadata`` from Hummingbird ``HBRequest``
-    /// - Parameter queryItemNames: Query items required from ``HBRequest``
-    /// - Returns: Constructed ServerRequestMetadata
     func makeOpenAPIRequestMetadata() -> ServerRequestMetadata {
         let keyAndValues = self.parameters.map { (key: String($0.0), value: String($0.1)) }
         let openAPIParameters = [String: String](keyAndValues) { first, _ in first }
