@@ -1,10 +1,10 @@
 import Hummingbird
-@testable import HummingbirdOpenAPI
 import HummingbirdXCT
+@testable import OpenAPIHummingbird
 import OpenAPIRuntime
 import XCTest
 
-final class HummingbirdTransportTests: XCTestCase {
+final class HBOpenAPITransportTests: XCTestCase {
     func test_makeHummingbirdPath() throws {
         XCTAssert(function: HBOpenAPITransport.makeHummingbirdPath(from:), behavesAccordingTo: [
             ([], ""),

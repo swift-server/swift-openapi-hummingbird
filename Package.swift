@@ -9,7 +9,7 @@ let package = Package(
         .macOS(.v13), .iOS(.v16), .tvOS(.v16), .watchOS(.v9),
     ],
     products: [
-        .library(name: "HummingbirdOpenAPI", targets: ["HummingbirdOpenAPI"]),
+        .library(name: "OpenAPIHummingbird", targets: ["OpenAPIHummingbird"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-openapi-runtime", branch: "main"),
@@ -17,16 +17,16 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "HummingbirdOpenAPI",
+            name: "OpenAPIHummingbird",
             dependencies: [
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
             ]
         ),
         .testTarget(
-            name: "HummingbirdOpenAPITests",
+            name: "OpenAPIHummingbirdTests",
             dependencies: [
-                "HummingbirdOpenAPI",
+                "OpenAPIHummingbird",
                 .product(name: "HummingbirdXCT", package: "hummingbird"),
             ]
         ),
