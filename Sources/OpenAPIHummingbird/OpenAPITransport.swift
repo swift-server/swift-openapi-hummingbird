@@ -80,7 +80,9 @@ extension HBRequest {
     func makeOpenAPIRequestMetadata() -> ServerRequestMetadata {
         let keyAndValues = self.parameters.map { (key: String($0.0), value: String($0.1)) }
         let openAPIParameters = [String: String](keyAndValues) { first, _ in first }
-        let openAPIQueryItems = self.uri.queryParameters.map { URLQueryItem(name: String($0.key), value: String($0.value)) }
+        let openAPIQueryItems = self.uri.queryParameters.map {
+            URLQueryItem(name: String($0.key), value: String($0.value))
+        }
         return .init(
             pathParameters: openAPIParameters,
             queryParameters: openAPIQueryItems

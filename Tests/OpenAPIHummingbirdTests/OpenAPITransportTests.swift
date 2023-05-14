@@ -1,19 +1,23 @@
 import Hummingbird
 import HummingbirdXCT
-@testable import OpenAPIHummingbird
 import OpenAPIRuntime
 import XCTest
 
+@testable import OpenAPIHummingbird
+
 final class HBOpenAPITransportTests: XCTestCase {
     func test_makeHummingbirdPath() throws {
-        XCTAssert(function: HBOpenAPITransport.makeHummingbirdPath(from:), behavesAccordingTo: [
-            ([], ""),
-            ([.constant("hello")], "hello"),
-            ([.constant("hello"), .constant("world")], "hello/world"),
-            ([.constant("hello"), .parameter("name")], "hello/${name}"),
-            ([.parameter("greeting"), .constant("world")], "${greeting}/world"),
-            ([.parameter("greeting"), .parameter("name")], "${greeting}/${name}"),
-        ])
+        XCTAssert(
+            function: HBOpenAPITransport.makeHummingbirdPath(from:),
+            behavesAccordingTo: [
+                ([], ""),
+                ([.constant("hello")], "hello"),
+                ([.constant("hello"), .constant("world")], "hello/world"),
+                ([.constant("hello"), .parameter("name")], "hello/${name}"),
+                ([.parameter("greeting"), .constant("world")], "${greeting}/world"),
+                ([.parameter("greeting"), .parameter("name")], "${greeting}/${name}"),
+            ]
+        )
     }
 
     func test_requestConversion() async throws {
@@ -26,7 +30,7 @@ final class HBOpenAPITransportTests: XCTestCase {
                 query: "greeting=Howdy",
                 method: .post,
                 headerFields: [
-                    .init(name: "X-Mumble", value: "mumble"),
+                    .init(name: "X-Mumble", value: "mumble")
                 ],
                 body: Data("👋".utf8)
             )
@@ -42,7 +46,7 @@ final class HBOpenAPITransportTests: XCTestCase {
             let response = Response(
                 statusCode: 201,
                 headerFields: [
-                    .init(name: "X-Mumble", value: "mumble"),
+                    .init(name: "X-Mumble", value: "mumble")
                 ],
                 body: Data("👋".utf8)
             )
@@ -66,26 +70,32 @@ final class HBOpenAPITransportTests: XCTestCase {
     }
 
     func testHTTPMethodConversion() throws {
-        XCTAssert(function: Hummingbird.HTTPMethod.init(_:), behavesAccordingTo: [
-            (.get, .GET),
-            (.put, .PUT),
-            (.post, .POST),
-            (.delete, .DELETE),
-            (.options, .OPTIONS),
-            (.head, .HEAD),
-            (.patch, .PATCH),
-            (.trace, .TRACE),
-        ])
-        XCTAssert(function: OpenAPIRuntime.HTTPMethod.init(_:), behavesAccordingTo: [
-            (.GET, .get),
-            (.PUT, .put),
-            (.POST, .post),
-            (.DELETE, .delete),
-            (.OPTIONS, .options),
-            (.HEAD, .head),
-            (.PATCH, .patch),
-            (.TRACE, .trace),
-        ])
+        XCTAssert(
+            function: Hummingbird.HTTPMethod.init(_:),
+            behavesAccordingTo: [
+                (.get, .GET),
+                (.put, .PUT),
+                (.post, .POST),
+                (.delete, .DELETE),
+                (.options, .OPTIONS),
+                (.head, .HEAD),
+                (.patch, .PATCH),
+                (.trace, .TRACE),
+            ]
+        )
+        XCTAssert(
+            function: OpenAPIRuntime.HTTPMethod.init(_:),
+            behavesAccordingTo: [
+                (.GET, .get),
+                (.PUT, .put),
+                (.POST, .post),
+                (.DELETE, .delete),
+                (.OPTIONS, .options),
+                (.HEAD, .head),
+                (.PATCH, .patch),
+                (.TRACE, .trace),
+            ]
+        )
     }
 }
 
