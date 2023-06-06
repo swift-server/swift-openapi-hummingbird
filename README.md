@@ -10,7 +10,7 @@ let app = HBApplication()
 let transport = HBOpenAPITransport(app)
 
 // Create an instance of your handler type that conforms the generated protocol
-// defininig your service API.
+// defining your service API.
 let handler = MyServiceAPIImpl()
 
 // Call the generated function on your implementation to add its request
