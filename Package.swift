@@ -3,6 +3,12 @@
 
 import PackageDescription
 
+let swiftSettings: [SwiftSetting] = [
+    // https://github.com/apple/swift-evolution/blob/main/proposals/0335-existential-any.md
+    // Require `any` for existential types.
+    .enableUpcomingFeature("ExistentialAny")
+]
+
 let package = Package(
     name: "swift-openapi-hummingbird",
     platforms: [
@@ -21,14 +27,16 @@ let package = Package(
             dependencies: [
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
-            ]
+            ],
+            swiftSettings: swiftSettings
         ),
         .testTarget(
             name: "OpenAPIHummingbirdTests",
             dependencies: [
                 "OpenAPIHummingbird",
                 .product(name: "HummingbirdXCT", package: "hummingbird"),
-            ]
+            ],
+            swiftSettings: swiftSettings
         ),
     ]
 )
