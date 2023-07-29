@@ -1,5 +1,6 @@
 import Foundation
 import Hummingbird
+import NIOFoundationCompat
 import NIOHTTP1
 import OpenAPIRuntime
 
