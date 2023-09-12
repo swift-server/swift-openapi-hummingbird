@@ -92,10 +92,17 @@ extension HBRequest {
 
 extension HBResponse {
     init(_ response: HTTPResponse, body: HTTPBody?) {
+        let responseBody: HBResponseBody
+        if let body = body {
+            let bufferSequence = body.map { ByteBuffer(bytes: $0)}
+            responseBody = .stream(AsyncSequenceResponseBodyStreamer(bufferSequence))
+        } else {
+            responseBody = .empty
+        }
         self.init(
             status: .init(statusCode: response.status.code, reasonPhrase: response.status.reasonPhrase) , 
             headers: .init(response.headerFields.map { (key: $0.name.canonicalName, value: $0.value) }), 
-            body: body.map { .stream(AsyncSequenceResponseBodyStreamer($0.byteBufferSequence)) } ?? .empty
+            body: responseBody
         )
     }
 }
