@@ -12,8 +12,8 @@ let package = Package(
         .library(name: "OpenAPIHummingbird", targets: ["OpenAPIHummingbird"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-openapi-runtime", "0.1.3" ..< "0.3.0"),
-        .package(url: "https://github.com/hummingbird-project/hummingbird", from: "1.0.0"),
+        .package(url: "https://github.com/czechboy0/swift-openapi-runtime", branch: "hd-adopt-http-types"),
+        .package(url: "https://github.com/hummingbird-project/hummingbird", branch: "main"),
     ],
     targets: [
         .target(
