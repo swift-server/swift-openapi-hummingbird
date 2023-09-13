@@ -13,7 +13,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/czechboy0/swift-openapi-runtime", branch: "hd-adopt-http-types"),
-        .package(url: "https://github.com/hummingbird-project/hummingbird", branch: "main"),
+        .package(url: "https://github.com/hummingbird-project/hummingbird", from: "1.8.3"),
     ],
     targets: [
         .target(
