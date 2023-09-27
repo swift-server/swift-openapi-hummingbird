@@ -12,7 +12,7 @@ let package = Package(
         .library(name: "OpenAPIHummingbird", targets: ["OpenAPIHummingbird"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-openapi-runtime", branch: "main"),
+        .package(url: "https://github.com/apple/swift-openapi-runtime", .upToNextMinor(from: "0.3.0")),
         .package(url: "https://github.com/hummingbird-project/hummingbird", from: "1.8.3"),
     ],
     targets: [
