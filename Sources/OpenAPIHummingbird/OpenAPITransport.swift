@@ -73,9 +73,9 @@ extension HBRequest {
         let body: HTTPBody?
         switch self.body {
         case .byteBuffer(let buffer):
-            body = buffer.map { HTTPBody(bytes: [UInt8](buffer: $0)) } 
+            body = buffer.map { HTTPBody([UInt8](buffer: $0)) } 
         case .stream(let streamer):
-            body = .init(sequence: AsyncStreamerToByteChunkSequence(streamer: streamer), length: .unknown, iterationBehavior: .single)
+            body = .init(AsyncStreamerToByteChunkSequence(streamer: streamer), length: .unknown, iterationBehavior: .single)
         }
         return (request, body)
     }

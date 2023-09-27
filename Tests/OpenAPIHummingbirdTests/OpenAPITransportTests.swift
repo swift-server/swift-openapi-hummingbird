@@ -35,14 +35,19 @@ final class HBOpenAPITransportTests: XCTestCase {
                 pathParameters: ["name": "Maria"]
             )
             let (request, body) = try hbRequest.makeOpenAPIRequest()
-            let collectedBody = try await body?.collect(upTo: .max)
+            let collectedBody: [UInt8]
+            if let body = body {
+                collectedBody = try await .init(collecting: body, upTo: .max)
+            } else {
+                collectedBody = []
+            }
             XCTAssertEqual(request, expectedRequest)
-            XCTAssertEqual(collectedBody, [UInt8]("👋".utf8)[...])
+            XCTAssertEqual(collectedBody, [UInt8]("👋".utf8))
             XCTAssertEqual(hbRequest.makeOpenAPIRequestMetadata(), expectedRequestMetadata)
 
             // Use the response-conversion to create the HBRequest for returning.
             let response = HTTPResponse(status: .created, headerFields: [.xMumble: "mumble"])
-            return HBResponse(response,  body: .init(bytes: [UInt8]("👋".utf8)))
+            return HBResponse(response,  body: .init([UInt8]("👋".utf8)))
         }
 
         try app.XCTStart()
