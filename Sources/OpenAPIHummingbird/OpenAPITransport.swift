@@ -1,4 +1,5 @@
 import Foundation
+import HTTPTypes
 import Hummingbird
 import NIOFoundationCompat
 import NIOHTTP1
@@ -24,124 +25,84 @@ extension HBOpenAPITransport {
     ///   - queryItemNames: The names of query items to be extracted
     ///   from the request URL that matches the provided HTTP operation.
     public func register(
-        _ handler: @escaping @Sendable (Request, ServerRequestMetadata) async throws -> Response,
-        method: OpenAPIRuntime.HTTPMethod,
-        path: [OpenAPIRuntime.RouterPathComponent],
-        queryItemNames: Set<String>
+        _ handler: @escaping @Sendable (HTTPRequest, HTTPBody?, ServerRequestMetadata) async throws -> (HTTPResponse, HTTPBody?), 
+        method: HTTPRequest.Method, 
+        path: String
     ) throws {
         self.application.router.on(
             Self.makeHummingbirdPath(from: path),
-            method: .init(method)
+            method: .init(rawValue: method.rawValue),
+            options: .streamBody
         ) { request in
-            let openAPIRequest = try request.makeOpenAPIRequest()
+            let (openAPIRequest, openAPIRequestBody) = try request.makeOpenAPIRequest()
             let openAPIRequestMetadata = request.makeOpenAPIRequestMetadata()
-            let openAPIResponse: Response = try await handler(openAPIRequest, openAPIRequestMetadata)
-            return openAPIResponse.makeHBResponse()
+            let (openAPIResponse, openAPIResponseBody) = try await handler(openAPIRequest, openAPIRequestBody, openAPIRequestMetadata)
+            return HBResponse(openAPIResponse, body: openAPIResponseBody)
         }
     }
 
-    /// Make hummingbird path string from RouterPathComponent array
-    static func makeHummingbirdPath(from path: [OpenAPIRuntime.RouterPathComponent]) -> String {
-        path.map(\.hbPathComponent).joined(separator: "/")
-    }
-}
-
-extension RouterPathComponent {
-    /// Return path component as String
-    var hbPathComponent: String {
-        switch self {
-        case .constant(let string):
-            return string
-        case .parameter(let parameter):
-            return "${\(parameter)}"
-        }
+    /// Make hummingbird path string from OpenAPI path
+    static func makeHummingbirdPath(from path: String) -> String {
+        // frustratingly hummingbird supports `${parameter}` style path which is oh so close
+        // to the OpenAPI `{parameter}` format
+        return path.replacingOccurrences(of: "{", with: "${")
     }
 }
 
 extension HBRequest {
     /// Construct ``OpenAPIRuntime.Request`` from Hummingbird ``HBRequest``
-    func makeOpenAPIRequest() throws -> Request {
-        guard let method = OpenAPIRuntime.HTTPMethod(self.method) else {
+    func makeOpenAPIRequest() throws -> (HTTPRequest, HTTPBody?) {
+        guard let method = HTTPRequest.Method(rawValue: self.method.rawValue) else {
             // if we cannot create an OpenAPI http method then we can't create a
             // a request and there is no handler for this method
             throw HBHTTPError(.notFound)
         }
-        let headers: [HeaderField] = self.headers.map { .init(name: $0.name, value: $0.value) }
-        let body = self.body.buffer.map { Data(buffer: $0, byteTransferStrategy: .noCopy) }
-        return .init(
-            path: self.uri.path,
-            query: self.uri.query,
-            method: method,
-            headerFields: headers,
-            body: body
+        var httpFields = HTTPFields()
+        for header in self.headers {
+            if let fieldName = HTTPField.Name(header.name) {
+                httpFields[fieldName] = header.value
+            }
+        }
+        let request = HTTPRequest(
+            method: method, 
+            scheme: nil, 
+            authority: nil, 
+            path: self.uri.string,
+            headerFields: httpFields
         )
+        let body: HTTPBody?
+        switch self.body {
+        case .byteBuffer(let buffer):
+            body = buffer.map { HTTPBody([UInt8](buffer: $0)) } 
+        case .stream(let streamer):
+            body = .init(AsyncStreamerToByteChunkSequence(streamer: streamer), length: .unknown, iterationBehavior: .single)
+        }
+        return (request, body)
     }
 
     /// Construct ``OpenAPIRuntime.ServerRequestMetadata`` from Hummingbird ``HBRequest``
     func makeOpenAPIRequestMetadata() -> ServerRequestMetadata {
-        let keyAndValues = self.parameters.map { (key: String($0.0), value: String($0.1)) }
-        let openAPIParameters = [String: String](keyAndValues) { first, _ in first }
-        let openAPIQueryItems = self.uri.queryParameters.map {
-            URLQueryItem(name: String($0.key), value: String($0.value))
-        }
+        let keyAndValues = self.parameters.map { (key: String($0.0), value: $0.1) }
+        let openAPIParameters = [String: Substring](keyAndValues) { first, _ in first }
         return .init(
-            pathParameters: openAPIParameters,
-            queryParameters: openAPIQueryItems
+            pathParameters: openAPIParameters
         )
     }
 }
 
-extension Response {
-    /// Construct Hummingbird ``HBResponse`` from ``OpenAPIRuntime.Response``
-    func makeHBResponse() -> HBResponse {
-        let statusCode = HTTPResponseStatus(statusCode: self.statusCode)
-        let headers = HTTPHeaders(self.headerFields.map { (name: $0.name, value: $0.value) })
-        let body = ByteBuffer(data: self.body)
-        return .init(
-            status: statusCode,
-            headers: headers,
-            body: .byteBuffer(body)
+extension HBResponse {
+    init(_ response: HTTPResponse, body: HTTPBody?) {
+        let responseBody: HBResponseBody
+        if let body = body {
+            let bufferSequence = body.map { ByteBuffer(bytes: $0)}
+            responseBody = .stream(AsyncSequenceResponseBodyStreamer(bufferSequence))
+        } else {
+            responseBody = .empty
+        }
+        self.init(
+            status: .init(statusCode: response.status.code, reasonPhrase: response.status.reasonPhrase) , 
+            headers: .init(response.headerFields.map { (key: $0.name.canonicalName, value: $0.value) }), 
+            body: responseBody
         )
-    }
-}
-
-extension OpenAPIRuntime.HTTPMethod {
-    init?(_ method: NIOHTTP1.HTTPMethod) {
-        switch method {
-        case .GET: self = .get
-        case .PUT: self = .put
-        case .POST: self = .post
-        case .DELETE: self = .delete
-        case .OPTIONS: self = .options
-        case .HEAD: self = .head
-        case .PATCH: self = .patch
-        case .TRACE: self = .trace
-        default: return nil
-        }
-    }
-}
-
-extension NIOHTTP1.HTTPMethod {
-    init(_ method: OpenAPIRuntime.HTTPMethod) {
-        switch method {
-        case .get:
-            self = .GET
-        case .put:
-            self = .PUT
-        case .post:
-            self = .POST
-        case .delete:
-            self = .DELETE
-        case .options:
-            self = .OPTIONS
-        case .head:
-            self = .HEAD
-        case .patch:
-            self = .PATCH
-        case .trace:
-            self = .TRACE
-        default:
-            self = .RAW(value: method.name)
-        }
     }
 }
