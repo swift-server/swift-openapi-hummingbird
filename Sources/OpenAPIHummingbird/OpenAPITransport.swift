@@ -15,22 +15,10 @@
 import Foundation
 import HTTPTypes
 import Hummingbird
-import NIOFoundationCompat
 import NIOHTTP1
 import OpenAPIRuntime
 
-/// Hummingbird Transport for OpenAPI generator
-public struct HBOpenAPITransport: ServerTransport {
-    let application: HBApplication
-
-    /// Initialise ``HBOpenAPITransport``
-    /// - Parameter application: Hummingbird application
-    public init(_ application: HBApplication) {
-        self.application = application
-    }
-}
-
-extension HBOpenAPITransport {
+extension HBRouterBuilder {
     /// Registers an HTTP operation handler at the provided path and method.
     /// - Parameters:
     ///   - handler: A handler to be invoked when an HTTP request is received.
@@ -45,18 +33,14 @@ extension HBOpenAPITransport {
         method: HTTPRequest.Method,
         path: String
     ) throws {
-        self.application.router.on(
+        self.on(
             Self.makeHummingbirdPath(from: path),
             method: .init(rawValue: method.rawValue),
             options: .streamBody
-        ) { request in
-            let (openAPIRequest, openAPIRequestBody) = try request.makeOpenAPIRequest()
-            let openAPIRequestMetadata = request.makeOpenAPIRequestMetadata()
-            let (openAPIResponse, openAPIResponseBody) = try await handler(
-                openAPIRequest,
-                openAPIRequestBody,
-                openAPIRequestMetadata
-            )
+        ) { request, context in
+            let (openAPIRequest, openAPIRequestBody) = try request.makeOpenAPIRequest(context: context)
+            let openAPIRequestMetadata = context.makeOpenAPIRequestMetadata()
+            let (openAPIResponse, openAPIResponseBody) = try await handler(openAPIRequest, openAPIRequestBody, openAPIRequestMetadata)
             return HBResponse(openAPIResponse, body: openAPIResponseBody)
         }
     }
@@ -71,7 +55,7 @@ extension HBOpenAPITransport {
 
 extension HBRequest {
     /// Construct ``OpenAPIRuntime.Request`` from Hummingbird ``HBRequest``
-    func makeOpenAPIRequest() throws -> (HTTPRequest, HTTPBody?) {
+    func makeOpenAPIRequest<Context: HBRequestContext>(context: Context) throws -> (HTTPRequest, HTTPBody?) {
         guard let method = HTTPRequest.Method(rawValue: self.method.rawValue) else {
             // if we cannot create an OpenAPI http method then we can't create a
             // a request and there is no handler for this method
@@ -93,7 +77,7 @@ extension HBRequest {
         let body: HTTPBody?
         switch self.body {
         case .byteBuffer(let buffer):
-            body = buffer.map { HTTPBody([UInt8](buffer: $0)) }
+            body = HTTPBody([UInt8](buffer: buffer))
         case .stream(let streamer):
             body = .init(
                 AsyncStreamerToByteChunkSequence(streamer: streamer),
@@ -103,7 +87,9 @@ extension HBRequest {
         }
         return (request, body)
     }
+}
 
+extension HBRequestContext {
     /// Construct ``OpenAPIRuntime.ServerRequestMetadata`` from Hummingbird ``HBRequest``
     func makeOpenAPIRequestMetadata() -> ServerRequestMetadata {
         let keyAndValues = self.parameters.map { (key: String($0.0), value: $0.1) }
@@ -118,10 +104,10 @@ extension HBResponse {
     init(_ response: HTTPResponse, body: HTTPBody?) {
         let responseBody: HBResponseBody
         if let body = body {
-            let bufferSequence = body.map { ByteBuffer(bytes: $0) }
-            responseBody = .stream(AsyncSequenceResponseBodyStreamer(bufferSequence))
+            let bufferSequence = body.map { ByteBuffer(bytes: $0)}
+            responseBody = .init(asyncSequence: bufferSequence)
         } else {
-            responseBody = .empty
+            responseBody = .init(byteBuffer: ByteBuffer())
         }
         self.init(
             status: .init(statusCode: response.status.code, reasonPhrase: response.status.reasonPhrase),

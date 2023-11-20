@@ -21,10 +21,10 @@ struct AsyncStreamerToByteChunkSequence: AsyncSequence {
     typealias Element = HTTPBody.ByteChunk
 
     struct AsyncIterator: AsyncIteratorProtocol {
-        let streamer: HBByteBufferStreamer
-
+        var streamer: HBStreamedRequestBody.AsyncIterator
+        
         mutating func next() async throws -> Element? {
-            if case .byteBuffer(let buffer) = try await streamer.consume() {
+            if let buffer = try await streamer.next() {
                 let byteChunk = [UInt8](buffer: buffer)[...]
                 return byteChunk
             }
@@ -33,8 +33,8 @@ struct AsyncStreamerToByteChunkSequence: AsyncSequence {
     }
 
     func makeAsyncIterator() -> AsyncIterator {
-        .init(streamer: self.streamer)
+        .init(streamer: self.streamer.makeAsyncIterator())
     }
 
-    let streamer: HBByteBufferStreamer
+    let streamer: HBStreamedRequestBody
 }
