@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "swift-openapi-hummingbird",
     platforms: [
-        .macOS(.v14), .iOS(.v13), .tvOS(.v13), .watchOS(.v6),
+        .macOS(.v14), .iOS(.v17), .tvOS(.v17), .watchOS(.v10),
     ],
     products: [
         .library(name: "OpenAPIHummingbird", targets: ["OpenAPIHummingbird"]),
