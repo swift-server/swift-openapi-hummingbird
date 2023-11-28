@@ -1,4 +1,4 @@
-// swift-tools-version: 5.8
+// swift-tools-version: 5.9
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -12,7 +12,7 @@ let package = Package(
         .library(name: "OpenAPIHummingbird", targets: ["OpenAPIHummingbird"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-openapi-runtime", .upToNextMinor(from: "0.3.0")),
+        .package(url: "https://github.com/apple/swift-openapi-runtime", exact: "1.0.0-alpha.1"),
         .package(url: "https://github.com/hummingbird-project/hummingbird", from: "1.8.3"),
     ],
     targets: [
