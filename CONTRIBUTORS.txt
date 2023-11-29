@@ -13,7 +13,7 @@ needs to be listed here.
 
 - Adam Fowler <adamfowler71@gmail.com>
 - Mahdi Bahrami <github@mahdibm.com>
-- Tim Condon <0xTim@users.noreply.github.com>
+- Tim Condon <0xtimc@gmail.com>
 
 **Updating this list**
 
