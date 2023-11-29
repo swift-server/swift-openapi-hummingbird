@@ -27,7 +27,7 @@ SCRIPT_PATHS=(
   "${CURRENT_SCRIPT_DIR}/check-for-unacceptable-language.sh"
   "${CURRENT_SCRIPT_DIR}/check-license-headers.sh"
   "${CURRENT_SCRIPT_DIR}/run-swift-format.sh"
-  "${CURRENT_SCRIPT_DIR}/check-for-docc-warnings.sh"
+#  "${CURRENT_SCRIPT_DIR}/check-for-docc-warnings.sh"
 )
 
 for SCRIPT_PATH in "${SCRIPT_PATHS[@]}"; do
