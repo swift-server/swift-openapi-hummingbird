@@ -40,6 +40,7 @@ PATHS_WITH_MISSING_LICENSE=( )
 read -ra PATHS_TO_CHECK_FOR_LICENSE <<< "$( \
   git -C "${REPO_ROOT}" ls-files -z \
   ":(exclude).gitignore" \
+  ":(exclude).mailmap" \
   ":(exclude).spi.yml" \
   ":(exclude).swift-format" \
   ":(exclude).github/*" \
