@@ -1,3 +1,17 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Hummingbird server framework project
+//
+// Copyright (c) 2023 the Hummingbird authors
+// Licensed under Apache License v2.0
+//
+// See LICENSE.txt for license information
+// See CONTRIBUTORS.txt for the list of Hummingbird authors
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+//===----------------------------------------------------------------------===//
+
 import Foundation
 import HTTPTypes
 import Hummingbird
@@ -25,8 +39,10 @@ extension HBOpenAPITransport {
     ///   - queryItemNames: The names of query items to be extracted
     ///   from the request URL that matches the provided HTTP operation.
     public func register(
-        _ handler: @escaping @Sendable (HTTPRequest, HTTPBody?, ServerRequestMetadata) async throws -> (HTTPResponse, HTTPBody?), 
-        method: HTTPRequest.Method, 
+        _ handler: @escaping @Sendable (HTTPRequest, HTTPBody?, ServerRequestMetadata) async throws -> (
+            HTTPResponse, HTTPBody?
+        ),
+        method: HTTPRequest.Method,
         path: String
     ) throws {
         self.application.router.on(
@@ -36,7 +52,11 @@ extension HBOpenAPITransport {
         ) { request in
             let (openAPIRequest, openAPIRequestBody) = try request.makeOpenAPIRequest()
             let openAPIRequestMetadata = request.makeOpenAPIRequestMetadata()
-            let (openAPIResponse, openAPIResponseBody) = try await handler(openAPIRequest, openAPIRequestBody, openAPIRequestMetadata)
+            let (openAPIResponse, openAPIResponseBody) = try await handler(
+                openAPIRequest,
+                openAPIRequestBody,
+                openAPIRequestMetadata
+            )
             return HBResponse(openAPIResponse, body: openAPIResponseBody)
         }
     }
@@ -64,18 +84,22 @@ extension HBRequest {
             }
         }
         let request = HTTPRequest(
-            method: method, 
-            scheme: nil, 
-            authority: nil, 
+            method: method,
+            scheme: nil,
+            authority: nil,
             path: self.uri.string,
             headerFields: httpFields
         )
         let body: HTTPBody?
         switch self.body {
         case .byteBuffer(let buffer):
-            body = buffer.map { HTTPBody([UInt8](buffer: $0)) } 
+            body = buffer.map { HTTPBody([UInt8](buffer: $0)) }
         case .stream(let streamer):
-            body = .init(AsyncStreamerToByteChunkSequence(streamer: streamer), length: .unknown, iterationBehavior: .single)
+            body = .init(
+                AsyncStreamerToByteChunkSequence(streamer: streamer),
+                length: .unknown,
+                iterationBehavior: .single
+            )
         }
         return (request, body)
     }
@@ -94,14 +118,14 @@ extension HBResponse {
     init(_ response: HTTPResponse, body: HTTPBody?) {
         let responseBody: HBResponseBody
         if let body = body {
-            let bufferSequence = body.map { ByteBuffer(bytes: $0)}
+            let bufferSequence = body.map { ByteBuffer(bytes: $0) }
             responseBody = .stream(AsyncSequenceResponseBodyStreamer(bufferSequence))
         } else {
             responseBody = .empty
         }
         self.init(
-            status: .init(statusCode: response.status.code, reasonPhrase: response.status.reasonPhrase) , 
-            headers: .init(response.headerFields.map { (key: $0.name.canonicalName, value: $0.value) }), 
+            status: .init(statusCode: response.status.code, reasonPhrase: response.status.reasonPhrase),
+            headers: .init(response.headerFields.map { (key: $0.name.canonicalName, value: $0.value) }),
             body: responseBody
         )
     }

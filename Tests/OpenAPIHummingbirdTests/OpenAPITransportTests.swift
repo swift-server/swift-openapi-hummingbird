@@ -1,3 +1,17 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Hummingbird server framework project
+//
+// Copyright (c) 2023 the Hummingbird authors
+// Licensed under Apache License v2.0
+//
+// See LICENSE.txt for license information
+// See CONTRIBUTORS.txt for the list of Hummingbird authors
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+//===----------------------------------------------------------------------===//
+
 import HTTPTypes
 import Hummingbird
 import HummingbirdXCT
@@ -20,7 +34,7 @@ final class HBOpenAPITransportTests: XCTestCase {
         app.router.post("/hello/:name") { hbRequest -> HBResponse in
             // Hijack the request handler to test the request-conversion functions.
             let expectedRequest = HTTPRequest(
-                method: .post,                
+                method: .post,
                 scheme: nil,
                 authority: nil,
                 path: "/hello/Maria?greeting=Howdy",
@@ -28,7 +42,7 @@ final class HBOpenAPITransportTests: XCTestCase {
                     .xMumble: "mumble",
                     .connection: "keep-alive",
                     .host: "localhost",
-                    .contentLength: "4"
+                    .contentLength: "4",
                 ]
             )
             let expectedRequestMetadata = ServerRequestMetadata(
@@ -47,7 +61,7 @@ final class HBOpenAPITransportTests: XCTestCase {
 
             // Use the response-conversion to create the HBRequest for returning.
             let response = HTTPResponse(status: .created, headerFields: [.xMumble: "mumble"])
-            return HBResponse(response,  body: .init([UInt8]("👋".utf8)))
+            return HBResponse(response, body: .init([UInt8]("👋".utf8)))
         }
 
         try app.XCTStart()
@@ -69,20 +83,20 @@ final class HBOpenAPITransportTests: XCTestCase {
     func test_largeBody() async throws {
         let app = HBApplication(testing: .live)
         app.server.addChannelHandler(BreakupHTTPBodyChannelHandler())
-        let bytes = (0..<1_000_000).map { _ in UInt8.random(in: 0...255)}
+        let bytes = (0..<1_000_000).map { _ in UInt8.random(in: 0...255) }
         let byteBuffer = ByteBuffer(bytes: bytes)
 
         app.router.post("/hello/:name") { hbRequest -> HBResponse in
             // Hijack the request handler to test the request-conversion functions.
             let expectedRequest = HTTPRequest(
-                method: .post,                
+                method: .post,
                 scheme: nil,
                 authority: nil,
                 path: "/hello/Maria?greeting=Howdy",
                 headerFields: [
                     .connection: "keep-alive",
                     .host: "localhost",
-                    .contentLength: "1000000"
+                    .contentLength: "1000000",
                 ]
             )
             let expectedRequestMetadata = ServerRequestMetadata(
@@ -94,7 +108,7 @@ final class HBOpenAPITransportTests: XCTestCase {
 
             // Use the response-conversion to create the HBRequest for returning.
             let response = HTTPResponse(status: .ok)
-            return HBResponse(response,  body: body)
+            return HBResponse(response, body: body)
         }
 
         try app.XCTStart()

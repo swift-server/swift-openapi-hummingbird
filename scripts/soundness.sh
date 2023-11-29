@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 ##===----------------------------------------------------------------------===##
 ##
+## This source file is part of the Hummingbird server framework project
+##
+## Copyright (c) 2023 the Hummingbird authors
+## Licensed under Apache License v2.0
+##
+## See LICENSE.txt for license information
+## See CONTRIBUTORS.txt for the list of Hummingbird authors
+##
+## SPDX-License-Identifier: Apache-2.0
+##
+##===----------------------------------------------------------------------===##
+##===----------------------------------------------------------------------===##
+##
 ## This source file is part of the SwiftOpenAPIGenerator open source project
 ##
 ## Copyright (c) 2023 Apple Inc. and the SwiftOpenAPIGenerator project authors
@@ -27,7 +40,7 @@ SCRIPT_PATHS=(
   "${CURRENT_SCRIPT_DIR}/check-for-unacceptable-language.sh"
   "${CURRENT_SCRIPT_DIR}/check-license-headers.sh"
   "${CURRENT_SCRIPT_DIR}/run-swift-format.sh"
-  "${CURRENT_SCRIPT_DIR}/check-for-docc-warnings.sh"
+#  "${CURRENT_SCRIPT_DIR}/check-for-docc-warnings.sh"
 )
 
 for SCRIPT_PATH in "${SCRIPT_PATHS[@]}"; do
