@@ -19,6 +19,7 @@ import HummingbirdXCT
 import NIOCore
 import NIOHTTP1
 import OpenAPIRuntime
+import NIOHTTPTypes
 import XCTest
 
 @testable import OpenAPIHummingbird
@@ -30,7 +31,7 @@ extension HTTPField.Name {
 
 final class HBOpenAPITransportTests: XCTestCase {
     func test_requestConversion() async throws {
-        let router = HBRouterBuilder()
+        let router = HBRouter()
 
         router.post("/hello/:name") { hbRequest, context -> HBResponse in
             // Hijack the request handler to test the request-conversion functions.
@@ -70,20 +71,22 @@ final class HBOpenAPITransportTests: XCTestCase {
         try await app.test(.live) { client in
             try await client.XCTExecute(
                 uri: "/hello/Maria?greeting=Howdy",
-                method: .POST,
-                headers: ["X-Mumble": "mumble"],
+                method: .post,
+                headers: [
+                    .xMumble: "mumble",
+                ],
                 body: ByteBuffer(string: "👋")
             ) { hbResponse in
                 // Check the HBResponse (created from the Response) is what meets expectations.
                 XCTAssertEqual(hbResponse.status, .created)
-                XCTAssertEqual(hbResponse.headers.first(name: "X-Mumble"), "mumble")
+                XCTAssertEqual(hbResponse.headers[.xMumble], "mumble")
                 XCTAssertEqual(try String(buffer: XCTUnwrap(hbResponse.body)), "👋")
             }
         }
     }
 
     func test_largeBody() async throws {
-        let router = HBRouterBuilder()
+        let router = HBRouter()
         let bytes = (0..<1_000_000).map { _ in UInt8.random(in: 0...255)}
         let byteBuffer = ByteBuffer(bytes: bytes)
 
@@ -96,7 +99,7 @@ final class HBOpenAPITransportTests: XCTestCase {
                 path: "/hello/Maria?greeting=Howdy",
                 headerFields: [
                     .connection: "keep-alive",
-                    .host: "localhost",
+                    // .host: "localhost",
                     .contentLength: "1000000",
                 ]
             )
@@ -113,8 +116,8 @@ final class HBOpenAPITransportTests: XCTestCase {
         }
 
         let app = HBApplication(
-            responder: router.buildResponder(),
-            channelSetup: HTTP1Channel(
+            router: router,
+            server: .http1(
                 additionalChannelHandlers: [
                     BreakupHTTPBodyChannelHandler()
                 ]
@@ -124,7 +127,7 @@ final class HBOpenAPITransportTests: XCTestCase {
         try await app.test(.live) { client in
             try await client.XCTExecute(
                 uri: "/hello/Maria?greeting=Howdy",
-                method: .POST,
+                method: .post,
                 body: byteBuffer
             ) { hbResponse in
                 // Check the HBResponse (created from the Response) is what meets expectations.
@@ -138,8 +141,8 @@ final class HBOpenAPITransportTests: XCTestCase {
 /// To test streaming we need to break up the HTTP body into multiple chunks. This channel handler
 /// breaks up the incoming HTTP body into multiple chunks
 class BreakupHTTPBodyChannelHandler: ChannelInboundHandler, RemovableChannelHandler {
-    typealias InboundIn = HTTPServerRequestPart
-    typealias InboundOut = HTTPServerRequestPart
+    typealias InboundIn = HTTPRequestPart
+    typealias InboundOut = HTTPRequestPart
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let part = unwrapInboundIn(data)

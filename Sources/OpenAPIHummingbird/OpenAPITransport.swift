@@ -18,7 +18,7 @@ import Hummingbird
 import NIOHTTP1
 import OpenAPIRuntime
 
-extension HBRouterBuilder {
+extension HBRouter {
     /// Registers an HTTP operation handler at the provided path and method.
     /// - Parameters:
     ///   - handler: A handler to be invoked when an HTTP request is received.
@@ -35,8 +35,7 @@ extension HBRouterBuilder {
     ) throws {
         self.on(
             Self.makeHummingbirdPath(from: path),
-            method: .init(rawValue: method.rawValue),
-            options: .streamBody
+            method: method
         ) { request, context in
             let (openAPIRequest, openAPIRequestBody) = try request.makeOpenAPIRequest(context: context)
             let openAPIRequestMetadata = context.makeOpenAPIRequestMetadata()
@@ -55,24 +54,13 @@ extension HBRouterBuilder {
 
 extension HBRequest {
     /// Construct ``OpenAPIRuntime.Request`` from Hummingbird ``HBRequest``
-    func makeOpenAPIRequest<Context: HBRequestContext>(context: Context) throws -> (HTTPRequest, HTTPBody?) {
-        guard let method = HTTPRequest.Method(rawValue: self.method.rawValue) else {
-            // if we cannot create an OpenAPI http method then we can't create a
-            // a request and there is no handler for this method
-            throw HBHTTPError(.notFound)
-        }
-        var httpFields = HTTPFields()
-        for header in self.headers {
-            if let fieldName = HTTPField.Name(header.name) {
-                httpFields[fieldName] = header.value
-            }
-        }
+    func makeOpenAPIRequest<Context: HBBaseRequestContext>(context: Context) throws -> (HTTPRequest, HTTPBody?) {
         let request = HTTPRequest(
-            method: method,
+            method: self.method,
             scheme: nil,
             authority: nil,
             path: self.uri.string,
-            headerFields: httpFields
+            headerFields: self.headers
         )
         let body: HTTPBody?
         switch self.body {
@@ -89,7 +77,7 @@ extension HBRequest {
     }
 }
 
-extension HBRequestContext {
+extension HBBaseRequestContext {
     /// Construct ``OpenAPIRuntime.ServerRequestMetadata`` from Hummingbird ``HBRequest``
     func makeOpenAPIRequestMetadata() -> ServerRequestMetadata {
         let keyAndValues = self.parameters.map { (key: String($0.0), value: $0.1) }
@@ -109,9 +97,10 @@ extension HBResponse {
         } else {
             responseBody = .init(byteBuffer: ByteBuffer())
         }
+
         self.init(
-            status: .init(statusCode: response.status.code, reasonPhrase: response.status.reasonPhrase),
-            headers: .init(response.headerFields.map { (key: $0.name.canonicalName, value: $0.value) }),
+            status: response.status,
+            headers: response.headerFields,
             body: responseBody
         )
     }
