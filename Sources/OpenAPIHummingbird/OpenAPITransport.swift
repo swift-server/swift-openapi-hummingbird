@@ -57,8 +57,8 @@ extension HBRequest {
     func makeOpenAPIRequest<Context: HBBaseRequestContext>(context: Context) throws -> (HTTPRequest, HTTPBody?) {
         let request = HTTPRequest(
             method: self.method,
-            scheme: nil,
-            authority: nil,
+            scheme: self.head.scheme,
+            authority: self.head.authority,
             path: self.uri.string,
             headerFields: self.headers
         )

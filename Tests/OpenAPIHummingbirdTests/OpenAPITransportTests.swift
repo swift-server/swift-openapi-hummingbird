@@ -94,12 +94,11 @@ final class HBOpenAPITransportTests: XCTestCase {
             // Hijack the request handler to test the request-conversion functions.
             let expectedRequest = HTTPRequest(
                 method: .post,
-                scheme: nil,
-                authority: nil,
+                scheme: "http",
+                authority: "localhost",
                 path: "/hello/Maria?greeting=Howdy",
                 headerFields: [
                     .connection: "keep-alive",
-                    // .host: "localhost",
                     .contentLength: "1000000",
                 ]
             )
