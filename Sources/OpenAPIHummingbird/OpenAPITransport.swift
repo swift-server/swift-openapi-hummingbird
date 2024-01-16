@@ -18,7 +18,7 @@ import Hummingbird
 import NIOHTTP1
 import OpenAPIRuntime
 
-extension HBRouter {
+extension HBRouter: ServerTransport {
     /// Registers an HTTP operation handler at the provided path and method.
     /// - Parameters:
     ///   - handler: A handler to be invoked when an HTTP request is received.
