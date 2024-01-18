@@ -34,7 +34,7 @@ extension HBRouter: ServerTransport {
         path: String
     ) throws {
         self.on(
-            Self.makeHummingbirdPath(from: path),
+            path,
             method: method
         ) { request, context in
             let (openAPIRequest, openAPIRequestBody) = try request.makeOpenAPIRequest(context: context)
@@ -42,13 +42,6 @@ extension HBRouter: ServerTransport {
             let (openAPIResponse, openAPIResponseBody) = try await handler(openAPIRequest, openAPIRequestBody, openAPIRequestMetadata)
             return HBResponse(openAPIResponse, body: openAPIResponseBody)
         }
-    }
-
-    /// Make hummingbird path string from OpenAPI path
-    static func makeHummingbirdPath(from path: String) -> String {
-        // frustratingly hummingbird supports `${parameter}` style path which is oh so close
-        // to the OpenAPI `{parameter}` format
-        return path.replacingOccurrences(of: "{", with: "${")
     }
 }
 
