@@ -48,20 +48,14 @@ extension HBRouter: ServerTransport {
 extension HBRequest {
     /// Construct ``OpenAPIRuntime.Request`` from Hummingbird ``HBRequest``
     func makeOpenAPIRequest<Context: HBBaseRequestContext>(context: Context) throws -> (HTTPRequest, HTTPBody?) {
-        let request = HTTPRequest(
-            method: self.method,
-            scheme: self.head.scheme,
-            authority: self.head.authority,
-            path: self.uri.string,
-            headerFields: self.headers
-        )
+        let request = self.head
         let body: HTTPBody?
         switch self.body {
         case .byteBuffer(let buffer):
             body = HTTPBody([UInt8](buffer: buffer))
         case .stream(let streamer):
             body = .init(
-                AsyncStreamerToByteChunkSequence(streamer: streamer),
+                streamer.map { [UInt8](buffer: $0) },
                 length: .unknown,
                 iterationBehavior: .single
             )
