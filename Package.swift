@@ -6,14 +6,14 @@ import PackageDescription
 let package = Package(
     name: "swift-openapi-hummingbird",
     platforms: [
-        .macOS(.v10_15), .iOS(.v13), .tvOS(.v13), .watchOS(.v6),
+        .macOS(.v14), .iOS(.v17), .tvOS(.v17), .watchOS(.v10),
     ],
     products: [
         .library(name: "OpenAPIHummingbird", targets: ["OpenAPIHummingbird"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-openapi-runtime.git", from: "1.0.0"),
-        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "1.8.3"),
+        .package(url: "https://github.com/hummingbird-project/hummingbird.git", branch: "2.x.x"),
     ],
     targets: [
         .target(

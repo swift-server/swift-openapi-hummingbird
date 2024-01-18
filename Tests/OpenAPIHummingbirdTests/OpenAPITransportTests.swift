@@ -14,10 +14,12 @@
 
 import HTTPTypes
 import Hummingbird
+import HummingbirdCore
 import HummingbirdXCT
 import NIOCore
 import NIOHTTP1
 import OpenAPIRuntime
+import NIOHTTPTypes
 import XCTest
 
 @testable import OpenAPIHummingbird
@@ -29,26 +31,25 @@ extension HTTPField.Name {
 
 final class HBOpenAPITransportTests: XCTestCase {
     func test_requestConversion() async throws {
-        let app = HBApplication(testing: .live)
+        let router = HBRouter()
 
-        app.router.post("/hello/:name") { hbRequest -> HBResponse in
+        router.post("/hello/:name") { hbRequest, context -> HBResponse in
             // Hijack the request handler to test the request-conversion functions.
             let expectedRequest = HTTPRequest(
                 method: .post,
-                scheme: nil,
-                authority: nil,
+                scheme: "http",
+                authority: "localhost",
                 path: "/hello/Maria?greeting=Howdy",
                 headerFields: [
                     .xMumble: "mumble",
                     .connection: "keep-alive",
-                    .host: "localhost",
                     .contentLength: "4",
                 ]
             )
             let expectedRequestMetadata = ServerRequestMetadata(
                 pathParameters: ["name": "Maria"]
             )
-            let (request, body) = try hbRequest.makeOpenAPIRequest()
+            let (request, body) = try hbRequest.makeOpenAPIRequest(context: context)
             let collectedBody: [UInt8]
             if let body = body {
                 collectedBody = try await .init(collecting: body, upTo: .max)
@@ -57,71 +58,80 @@ final class HBOpenAPITransportTests: XCTestCase {
             }
             XCTAssertEqual(request, expectedRequest)
             XCTAssertEqual(collectedBody, [UInt8]("👋".utf8))
-            XCTAssertEqual(hbRequest.makeOpenAPIRequestMetadata(), expectedRequestMetadata)
+            XCTAssertEqual(context.makeOpenAPIRequestMetadata(), expectedRequestMetadata)
 
             // Use the response-conversion to create the HBRequest for returning.
             let response = HTTPResponse(status: .created, headerFields: [.xMumble: "mumble"])
             return HBResponse(response, body: .init([UInt8]("👋".utf8)))
         }
 
-        try app.XCTStart()
-        defer { app.XCTStop() }
+        let app = HBApplication(responder: router.buildResponder())
 
-        try app.XCTExecute(
-            uri: "/hello/Maria?greeting=Howdy",
-            method: .POST,
-            headers: ["X-Mumble": "mumble"],
-            body: ByteBuffer(string: "👋")
-        ) { hbResponse in
-            // Check the HBResponse (created from the Response) is what meets expectations.
-            XCTAssertEqual(hbResponse.status, .created)
-            XCTAssertEqual(hbResponse.headers.first(name: "X-Mumble"), "mumble")
-            XCTAssertEqual(try String(buffer: XCTUnwrap(hbResponse.body)), "👋")
+        try await app.test(.live) { client in
+            try await client.XCTExecute(
+                uri: "/hello/Maria?greeting=Howdy",
+                method: .post,
+                headers: [
+                    .xMumble: "mumble",
+                ],
+                body: ByteBuffer(string: "👋")
+            ) { hbResponse in
+                // Check the HBResponse (created from the Response) is what meets expectations.
+                XCTAssertEqual(hbResponse.status, .created)
+                XCTAssertEqual(hbResponse.headers[.xMumble], "mumble")
+                XCTAssertEqual(try String(buffer: XCTUnwrap(hbResponse.body)), "👋")
+            }
         }
     }
 
     func test_largeBody() async throws {
-        let app = HBApplication(testing: .live)
-        app.server.addChannelHandler(BreakupHTTPBodyChannelHandler())
-        let bytes = (0..<1_000_000).map { _ in UInt8.random(in: 0...255) }
+        let router = HBRouter()
+        let bytes = (0..<1_000_000).map { _ in UInt8.random(in: 0...255)}
         let byteBuffer = ByteBuffer(bytes: bytes)
 
-        app.router.post("/hello/:name") { hbRequest -> HBResponse in
+        router.post("/hello/:name") { hbRequest, context -> HBResponse in
             // Hijack the request handler to test the request-conversion functions.
             let expectedRequest = HTTPRequest(
                 method: .post,
-                scheme: nil,
-                authority: nil,
+                scheme: "http",
+                authority: "localhost",
                 path: "/hello/Maria?greeting=Howdy",
                 headerFields: [
                     .connection: "keep-alive",
-                    .host: "localhost",
                     .contentLength: "1000000",
                 ]
             )
             let expectedRequestMetadata = ServerRequestMetadata(
                 pathParameters: ["name": "Maria"]
             )
-            let (request, body) = try hbRequest.makeOpenAPIRequest()
+            let (request, body) = try hbRequest.makeOpenAPIRequest(context: context)
             XCTAssertEqual(request, expectedRequest)
-            XCTAssertEqual(hbRequest.makeOpenAPIRequestMetadata(), expectedRequestMetadata)
+            XCTAssertEqual(context.makeOpenAPIRequestMetadata(), expectedRequestMetadata)
 
             // Use the response-conversion to create the HBRequest for returning.
             let response = HTTPResponse(status: .ok)
             return HBResponse(response, body: body)
         }
 
-        try app.XCTStart()
-        defer { app.XCTStop() }
+        let app = HBApplication(
+            router: router,
+            server: .http1(
+                additionalChannelHandlers: [
+                    BreakupHTTPBodyChannelHandler()
+                ]
+            )
+        )
 
-        try app.XCTExecute(
-            uri: "/hello/Maria?greeting=Howdy",
-            method: .POST,
-            body: byteBuffer
-        ) { hbResponse in
-            // Check the HBResponse (created from the Response) is what meets expectations.
-            XCTAssertEqual(hbResponse.status, .ok)
-            XCTAssertEqual(byteBuffer, hbResponse.body)
+        try await app.test(.live) { client in
+            try await client.XCTExecute(
+                uri: "/hello/Maria?greeting=Howdy",
+                method: .post,
+                body: byteBuffer
+            ) { hbResponse in
+                // Check the HBResponse (created from the Response) is what meets expectations.
+                XCTAssertEqual(hbResponse.status, .ok)
+                XCTAssertEqual(byteBuffer, hbResponse.body)
+            }
         }
     }
 }
@@ -129,8 +139,8 @@ final class HBOpenAPITransportTests: XCTestCase {
 /// To test streaming we need to break up the HTTP body into multiple chunks. This channel handler
 /// breaks up the incoming HTTP body into multiple chunks
 class BreakupHTTPBodyChannelHandler: ChannelInboundHandler, RemovableChannelHandler {
-    typealias InboundIn = HTTPServerRequestPart
-    typealias InboundOut = HTTPServerRequestPart
+    typealias InboundIn = HTTPRequestPart
+    typealias InboundOut = HTTPRequestPart
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let part = unwrapInboundIn(data)
