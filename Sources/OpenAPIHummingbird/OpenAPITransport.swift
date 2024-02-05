@@ -49,17 +49,11 @@ extension HBRequest {
     /// Construct ``OpenAPIRuntime.Request`` from Hummingbird ``HBRequest``
     func makeOpenAPIRequest<Context: HBBaseRequestContext>(context: Context) throws -> (HTTPRequest, HTTPBody?) {
         let request = self.head
-        let body: HTTPBody?
-        switch self.body {
-        case .byteBuffer(let buffer):
-            body = HTTPBody([UInt8](buffer: buffer))
-        case .stream(let streamer):
-            body = .init(
-                streamer.map { [UInt8](buffer: $0) },
-                length: .unknown,
-                iterationBehavior: .single
-            )
-        }
+        let body = HTTPBody(
+            self.body.map { [UInt8](buffer: $0) },
+            length: .unknown,
+            iterationBehavior: .single
+        )
         return (request, body)
     }
 }
