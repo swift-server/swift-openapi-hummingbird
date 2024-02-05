@@ -49,9 +49,15 @@ extension HBRequest {
     /// Construct ``OpenAPIRuntime.Request`` from Hummingbird ``HBRequest``
     func makeOpenAPIRequest<Context: HBBaseRequestContext>(context: Context) throws -> (HTTPRequest, HTTPBody?) {
         let request = self.head
+        // extract length from content-length header
+        let length = if let contentLengthHeader = self.headers[.contentLength], let contentLength = Int(contentLengthHeader) {
+            HTTPBody.Length.known(numericCast(contentLength))
+        } else {
+            HTTPBody.Length.unknown
+        }
         let body = HTTPBody(
             self.body.map { [UInt8](buffer: $0) },
-            length: .unknown,
+            length: length,
             iterationBehavior: .single
         )
         return (request, body)
@@ -74,7 +80,15 @@ extension HBResponse {
         let responseBody: HBResponseBody
         if let body = body {
             let bufferSequence = body.map { ByteBuffer(bytes: $0)}
-            responseBody = .init(asyncSequence: bufferSequence)
+            if case .known(let length) = body.length {
+                responseBody = .init(contentLength: numericCast(length)) { writer in
+                    for try await buffer in bufferSequence {
+                        try await writer.write(buffer)
+                    }
+                }
+            } else {
+                responseBody = .init(asyncSequence: bufferSequence)
+            }
         } else {
             responseBody = .init(byteBuffer: ByteBuffer())
         }

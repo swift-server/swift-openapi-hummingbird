@@ -79,6 +79,7 @@ final class HBOpenAPITransportTests: XCTestCase {
                 // Check the HBResponse (created from the Response) is what meets expectations.
                 XCTAssertEqual(hbResponse.status, .created)
                 XCTAssertEqual(hbResponse.headers[.xMumble], "mumble")
+                XCTAssertEqual(hbResponse.headers[.contentLength], "👋".utf8.count.description)
                 XCTAssertEqual(try String(buffer: XCTUnwrap(hbResponse.body)), "👋")
             }
         }
