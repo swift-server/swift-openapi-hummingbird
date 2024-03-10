@@ -18,7 +18,7 @@ import Hummingbird
 import NIOHTTP1
 import OpenAPIRuntime
 
-extension HBRouter: ServerTransport {
+extension Router: ServerTransport {
     /// Registers an HTTP operation handler at the provided path and method.
     /// - Parameters:
     ///   - handler: A handler to be invoked when an HTTP request is received.
@@ -40,14 +40,14 @@ extension HBRouter: ServerTransport {
             let (openAPIRequest, openAPIRequestBody) = try request.makeOpenAPIRequest(context: context)
             let openAPIRequestMetadata = context.makeOpenAPIRequestMetadata()
             let (openAPIResponse, openAPIResponseBody) = try await handler(openAPIRequest, openAPIRequestBody, openAPIRequestMetadata)
-            return HBResponse(openAPIResponse, body: openAPIResponseBody)
+            return Response(openAPIResponse, body: openAPIResponseBody)
         }
     }
 }
 
-extension HBRequest {
-    /// Construct ``OpenAPIRuntime.Request`` from Hummingbird ``HBRequest``
-    func makeOpenAPIRequest<Context: HBBaseRequestContext>(context: Context) throws -> (HTTPRequest, HTTPBody?) {
+extension Request {
+    /// Construct ``OpenAPIRuntime.Request`` from Hummingbird ``Request``
+    func makeOpenAPIRequest<Context: BaseRequestContext>(context: Context) throws -> (HTTPRequest, HTTPBody?) {
         let request = self.head
         // extract length from content-length header
         let length = if let contentLengthHeader = self.headers[.contentLength], let contentLength = Int(contentLengthHeader) {
@@ -64,8 +64,8 @@ extension HBRequest {
     }
 }
 
-extension HBBaseRequestContext {
-    /// Construct ``OpenAPIRuntime.ServerRequestMetadata`` from Hummingbird ``HBRequest``
+extension BaseRequestContext {
+    /// Construct ``OpenAPIRuntime.ServerRequestMetadata`` from Hummingbird ``Request``
     func makeOpenAPIRequestMetadata() -> ServerRequestMetadata {
         let keyAndValues = self.parameters.map { (key: String($0.0), value: $0.1) }
         let openAPIParameters = [String: Substring](keyAndValues) { first, _ in first }
@@ -75,9 +75,9 @@ extension HBBaseRequestContext {
     }
 }
 
-extension HBResponse {
+extension Response {
     init(_ response: HTTPResponse, body: HTTPBody?) {
-        let responseBody: HBResponseBody
+        let responseBody: ResponseBody
         if let body = body {
             let bufferSequence = body.map { ByteBuffer(bytes: $0)}
             if case .known(let length) = body.length {

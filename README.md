@@ -4,7 +4,7 @@ Hummingbird transport for [OpenAPI generator](https://github.com/apple/swift-ope
 
 ```swift
 // Create your router.
-let router = HBRouter()
+let router = Router()
 
 // Create an instance of your handler type that conforms the generated protocol
 // defining your service API.
@@ -15,7 +15,7 @@ let api = MyServiceAPIImpl()
 try api.registerHandlers(on: router)
 
 // Create the application and run as you would normally.
-let app = HBApplication(router: router)
+let app = Application(router: router)
 try await app.runService()
 ```
 
