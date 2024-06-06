@@ -18,7 +18,7 @@ import Hummingbird
 import NIOHTTP1
 import OpenAPIRuntime
 
-extension Router: ServerTransport {
+extension RouterMethods {
     /// Registers an HTTP operation handler at the provided path and method.
     /// - Parameters:
     ///   - handler: A handler to be invoked when an HTTP request is received.
@@ -100,3 +100,13 @@ extension Response {
         )
     }
 }
+
+#if hasFeature(RetroactiveAttribute)
+extension Router: @retroactive ServerTransport {}
+extension RouterGroup: @retroactive ServerTransport {}
+extension RouteCollection: @retroactive ServerTransport {}
+#else
+extension Router: ServerTransport {}
+extension RouterGroup: ServerTransport {}
+extension RouteCollection: ServerTransport {}
+#endif
