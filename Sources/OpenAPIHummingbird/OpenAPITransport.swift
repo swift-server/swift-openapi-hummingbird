@@ -47,7 +47,7 @@ extension RouterMethods {
 
 extension Request {
     /// Construct ``OpenAPIRuntime.Request`` from Hummingbird ``Request``
-    func makeOpenAPIRequest<Context: BaseRequestContext>(context: Context) throws -> (HTTPRequest, HTTPBody?) {
+    func makeOpenAPIRequest<Context: RequestContext>(context: Context) throws -> (HTTPRequest, HTTPBody?) {
         let request = self.head
         // extract length from content-length header
         let length = if let contentLengthHeader = self.headers[.contentLength], let contentLength = Int(contentLengthHeader) {
@@ -64,7 +64,7 @@ extension Request {
     }
 }
 
-extension BaseRequestContext {
+extension RequestContext {
     /// Construct ``OpenAPIRuntime.ServerRequestMetadata`` from Hummingbird ``Request``
     func makeOpenAPIRequestMetadata() -> ServerRequestMetadata {
         let keyAndValues = self.parameters.map { (key: String($0.0), value: $0.1) }
