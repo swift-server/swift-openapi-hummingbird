@@ -34,7 +34,7 @@ extension RouterMethods {
         path: String
     ) throws {
         self.on(
-            path,
+            .init(path),
             method: method
         ) { request, context in
             let (openAPIRequest, openAPIRequestBody) = try request.makeOpenAPIRequest(context: context)
