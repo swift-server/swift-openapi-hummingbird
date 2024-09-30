@@ -85,6 +85,7 @@ extension Response {
                     for try await buffer in bufferSequence {
                         try await writer.write(buffer)
                     }
+                    try await writer.finish(nil)
                 }
             } else {
                 responseBody = .init(asyncSequence: bufferSequence)
