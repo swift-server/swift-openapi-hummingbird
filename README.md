@@ -36,7 +36,7 @@ struct RequestContextMiddleware: RouterMiddleware {
 }
 ```
 
-If you add this middleware to your router then the request context is then available from `RequestContextMiddleware.requestContext`.
+If you add a version of this middleware, replacing `MyRequestContext` with your own `RequestContext`, to the end of your router middleware chain then the request context is available via `RequestContextMiddleware.requestContext`.
 
 ## Documentation
 
