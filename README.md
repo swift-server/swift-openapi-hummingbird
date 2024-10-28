@@ -21,7 +21,7 @@ try await app.runService()
 
 ## RequestContext
 
-It is a common requirement that the router `RequestContext` is needed in OpenAPI endpoints. You can do this by adding a middleware that stores the RequestContext in a TaskLocal. 
+It is a common requirement that the router `RequestContext` is used in OpenAPI endpoints. You can do this by adding a middleware that stores your RequestContext type in a TaskLocal. 
 
 ```swift
 struct RequestContextMiddleware: RouterMiddleware {
@@ -36,7 +36,7 @@ struct RequestContextMiddleware: RouterMiddleware {
 }
 ```
 
-If you add a version of this middleware, replacing `MyRequestContext` with your own `RequestContext`, to the end of your router middleware chain then the request context is available via `RequestContextMiddleware.requestContext`.
+If you add a version of this middleware, replacing `MyRequestContext` with your own `RequestContext` type, to the end of your router middleware chain then it will be available from your OpenAPI endpoints via `RequestContextMiddleware.requestContext`.
 
 ## Documentation
 
