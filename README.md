@@ -19,6 +19,25 @@ let app = Application(router: router)
 try await app.runService()
 ```
 
+## RequestContext
+
+It is a common requirement that the router `RequestContext` is used in OpenAPI endpoints. You can do this by adding a middleware that stores your RequestContext type in a TaskLocal. 
+
+```swift
+struct RequestContextMiddleware: RouterMiddleware {
+    typealias Context = MyRequestContext
+    @TaskLocal static var requestContext: Context?
+
+    func handle(_ request: Request, context: Context, next: (Request, Context) async throws -> Response) async throws -> Response {
+        try await Self.$requestContext.withValue(context) {
+            try await next(request, context)
+        }
+    }
+}
+```
+
+If you add a version of this middleware, replacing `MyRequestContext` with your own `RequestContext` type, to the end of your router middleware chain then it will be available from your OpenAPI endpoints via `RequestContextMiddleware.requestContext`.
+
 ## Documentation
 
 To get started, check out the full [documentation][docs-generator], which contains step-by-step tutorials!
