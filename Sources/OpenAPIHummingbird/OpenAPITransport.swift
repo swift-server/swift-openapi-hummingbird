@@ -18,35 +18,26 @@ import Hummingbird
 import NIOHTTP1
 import OpenAPIRuntime
 
-struct TaskLocalRequestContext<Context: RequestContext> {
-    @TaskLocal static var instance: Context?
-}
-
 extension RouterMethods {
     /// Registers an HTTP operation handler at the provided path and method.
     /// - Parameters:
     ///   - handler: A handler to be invoked when an HTTP request is received.
     ///   - method: An HTTP request method.
     ///   - path: The URL path components, for example `["pets", ":petId"]`.
-    ///   - queryItemNames: The names of query items to be extracted
-    ///   from the request URL that matches the provided HTTP operation.
     public func register(
         _ handler: @escaping @Sendable (HTTPRequest, HTTPBody?, ServerRequestMetadata) async throws -> (
             HTTPResponse, HTTPBody?
         ),
         method: HTTPRequest.Method,
         path: String
-    ) throws {
+    ) {
         self.on(
             .init(path),
             method: method
         ) { request, context in
             let (openAPIRequest, openAPIRequestBody) = try request.makeOpenAPIRequest(context: context)
             let openAPIRequestMetadata = context.makeOpenAPIRequestMetadata()
-            let (openAPIResponse, openAPIResponseBody) = try await TaskLocalRequestContext<Context>.$instance.withValue(context) {
-                TaskLocalRequestContext<Context>.instance?.logger.info("Yeah")
-                try await handler(openAPIRequest, openAPIRequestBody, openAPIRequestMetadata) 
-            }
+            let (openAPIResponse, openAPIResponseBody) = try await handler(openAPIRequest, openAPIRequestBody, openAPIRequestMetadata) 
             return Response(openAPIResponse, body: openAPIResponseBody)
         }
     }
