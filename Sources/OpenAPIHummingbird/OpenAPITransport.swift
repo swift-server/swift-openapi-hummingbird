@@ -18,6 +18,10 @@ import Hummingbird
 import NIOHTTP1
 import OpenAPIRuntime
 
+struct TaskLocalRequestContext<Context: RequestContext> {
+    @TaskLocal static var instance: Context?
+}
+
 extension RouterMethods {
     /// Registers an HTTP operation handler at the provided path and method.
     /// - Parameters:
@@ -39,7 +43,10 @@ extension RouterMethods {
         ) { request, context in
             let (openAPIRequest, openAPIRequestBody) = try request.makeOpenAPIRequest(context: context)
             let openAPIRequestMetadata = context.makeOpenAPIRequestMetadata()
-            let (openAPIResponse, openAPIResponseBody) = try await handler(openAPIRequest, openAPIRequestBody, openAPIRequestMetadata)
+            let (openAPIResponse, openAPIResponseBody) = try await TaskLocalRequestContext<Context>.$instance.withValue(context) {
+                TaskLocalRequestContext<Context>.instance?.logger.info("Yeah")
+                try await handler(openAPIRequest, openAPIRequestBody, openAPIRequestMetadata) 
+            }
             return Response(openAPIResponse, body: openAPIResponseBody)
         }
     }
