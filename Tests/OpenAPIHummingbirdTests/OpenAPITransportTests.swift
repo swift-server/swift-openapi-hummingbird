@@ -40,15 +40,9 @@ final class HBOpenAPITransportTests: XCTestCase {
                 scheme: "http",
                 authority: "localhost",
                 path: "/hello/Maria?greeting=Howdy",
-                headerFields: [
-                    .xMumble: "mumble",
-                    .connection: "keep-alive",
-                    .contentLength: "4",
-                ]
+                headerFields: [.xMumble: "mumble", .connection: "keep-alive", .contentLength: "4"]
             )
-            let expectedRequestMetadata = ServerRequestMetadata(
-                pathParameters: ["name": "Maria"]
-            )
+            let expectedRequestMetadata = ServerRequestMetadata(pathParameters: ["name": "Maria"])
             let (request, body) = try hbRequest.makeOpenAPIRequest(context: context)
             let collectedBody: [UInt8]
             if let body = body {
@@ -71,9 +65,7 @@ final class HBOpenAPITransportTests: XCTestCase {
             try await client.execute(
                 uri: "/hello/Maria?greeting=Howdy",
                 method: .post,
-                headers: [
-                    .xMumble: "mumble",
-                ],
+                headers: [.xMumble: "mumble"],
                 body: ByteBuffer(string: "👋")
             ) { hbResponse in
                 // Check the HBResponse (created from the Response) is what meets expectations.
@@ -87,7 +79,7 @@ final class HBOpenAPITransportTests: XCTestCase {
 
     func test_largeBody() async throws {
         let router = Router()
-        let bytes = (0..<1_000_000).map { _ in UInt8.random(in: 0...255)}
+        let bytes = (0..<1_000_000).map { _ in UInt8.random(in: 0...255) }
         let byteBuffer = ByteBuffer(bytes: bytes)
 
         router.post("/hello/:name") { hbRequest, context -> Response in
@@ -97,14 +89,9 @@ final class HBOpenAPITransportTests: XCTestCase {
                 scheme: "http",
                 authority: "localhost",
                 path: "/hello/Maria?greeting=Howdy",
-                headerFields: [
-                    .connection: "keep-alive",
-                    .contentLength: "1000000",
-                ]
+                headerFields: [.connection: "keep-alive", .contentLength: "1000000"]
             )
-            let expectedRequestMetadata = ServerRequestMetadata(
-                pathParameters: ["name": "Maria"]
-            )
+            let expectedRequestMetadata = ServerRequestMetadata(pathParameters: ["name": "Maria"])
             let (request, body) = try hbRequest.makeOpenAPIRequest(context: context)
             XCTAssertEqual(request, expectedRequest)
             XCTAssertEqual(context.makeOpenAPIRequestMetadata(), expectedRequestMetadata)
@@ -116,19 +103,12 @@ final class HBOpenAPITransportTests: XCTestCase {
 
         let app = Application(
             router: router,
-            server: .http1(
-                additionalChannelHandlers: [
-                    BreakupHTTPBodyChannelHandler()
-                ]
-            )
+            server: .http1(additionalChannelHandlers: [BreakupHTTPBodyChannelHandler()])
         )
 
         try await app.test(.live) { client in
-            try await client.execute(
-                uri: "/hello/Maria?greeting=Howdy",
-                method: .post,
-                body: byteBuffer
-            ) { hbResponse in
+            try await client.execute(uri: "/hello/Maria?greeting=Howdy", method: .post, body: byteBuffer) {
+                hbResponse in
                 // Check the Response (created from the Response) is what meets expectations.
                 XCTAssertEqual(hbResponse.status, .ok)
                 XCTAssertEqual(byteBuffer, hbResponse.body)
@@ -147,8 +127,7 @@ class BreakupHTTPBodyChannelHandler: ChannelInboundHandler, RemovableChannelHand
         let part = unwrapInboundIn(data)
 
         switch part {
-        case .head, .end:
-            context.fireChannelRead(data)
+        case .head, .end: context.fireChannelRead(data)
         case .body(var buffer):
             while buffer.readableBytes > 0 {
                 let size = min(32768, buffer.readableBytes)
