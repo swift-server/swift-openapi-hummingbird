@@ -24,22 +24,21 @@ extension RouterMethods {
     ///   - handler: A handler to be invoked when an HTTP request is received.
     ///   - method: An HTTP request method.
     ///   - path: The URL path components, for example `["pets", ":petId"]`.
-    ///   - queryItemNames: The names of query items to be extracted
-    ///   from the request URL that matches the provided HTTP operation.
     public func register(
         _ handler: @escaping @Sendable (HTTPRequest, HTTPBody?, ServerRequestMetadata) async throws -> (
             HTTPResponse, HTTPBody?
         ),
         method: HTTPRequest.Method,
         path: String
-    ) throws {
-        self.on(
-            .init(path),
-            method: method
-        ) { request, context in
+    ) {
+        self.on(.init(path), method: method) { request, context in
             let (openAPIRequest, openAPIRequestBody) = try request.makeOpenAPIRequest(context: context)
             let openAPIRequestMetadata = context.makeOpenAPIRequestMetadata()
-            let (openAPIResponse, openAPIResponseBody) = try await handler(openAPIRequest, openAPIRequestBody, openAPIRequestMetadata)
+            let (openAPIResponse, openAPIResponseBody) = try await handler(
+                openAPIRequest,
+                openAPIRequestBody,
+                openAPIRequestMetadata
+            )
             return Response(openAPIResponse, body: openAPIResponseBody)
         }
     }
@@ -50,16 +49,11 @@ extension Request {
     func makeOpenAPIRequest<Context: RequestContext>(context: Context) throws -> (HTTPRequest, HTTPBody?) {
         let request = self.head
         // extract length from content-length header
-        let length = if let contentLengthHeader = self.headers[.contentLength], let contentLength = Int(contentLengthHeader) {
-            HTTPBody.Length.known(numericCast(contentLength))
-        } else {
-            HTTPBody.Length.unknown
-        }
-        let body = HTTPBody(
-            self.body.map { [UInt8](buffer: $0) },
-            length: length,
-            iterationBehavior: .single
-        )
+        let length =
+            if let contentLengthHeader = self.headers[.contentLength], let contentLength = Int(contentLengthHeader) {
+                HTTPBody.Length.known(numericCast(contentLength))
+            } else { HTTPBody.Length.unknown }
+        let body = HTTPBody(self.body.map { [UInt8](buffer: $0) }, length: length, iterationBehavior: .single)
         return (request, body)
     }
 }
@@ -69,9 +63,7 @@ extension RequestContext {
     func makeOpenAPIRequestMetadata() -> ServerRequestMetadata {
         let keyAndValues = self.parameters.map { (key: String($0.0), value: $0.1) }
         let openAPIParameters = [String: Substring](keyAndValues) { first, _ in first }
-        return .init(
-            pathParameters: openAPIParameters
-        )
+        return .init(pathParameters: openAPIParameters)
     }
 }
 
@@ -79,12 +71,10 @@ extension Response {
     init(_ response: HTTPResponse, body: HTTPBody?) {
         let responseBody: ResponseBody
         if let body = body {
-            let bufferSequence = body.map { ByteBuffer(bytes: $0)}
+            let bufferSequence = body.map { ByteBuffer(bytes: $0) }
             if case .known(let length) = body.length {
                 responseBody = .init(contentLength: numericCast(length)) { writer in
-                    for try await buffer in bufferSequence {
-                        try await writer.write(buffer)
-                    }
+                    for try await buffer in bufferSequence { try await writer.write(buffer) }
                     try await writer.finish(nil)
                 }
             } else {
@@ -94,11 +84,7 @@ extension Response {
             responseBody = .init(byteBuffer: ByteBuffer())
         }
 
-        self.init(
-            status: response.status,
-            headers: response.headerFields,
-            body: responseBody
-        )
+        self.init(status: response.status, headers: response.headerFields, body: responseBody)
     }
 }
 
