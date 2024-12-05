@@ -103,7 +103,7 @@ final class HBOpenAPITransportTests: XCTestCase {
 
         let app = Application(
             router: router,
-            server: .http1(additionalChannelHandlers: [BreakupHTTPBodyChannelHandler()])
+            server: .http1(configuration: .init(additionalChannelHandlers: [BreakupHTTPBodyChannelHandler()]))
         )
 
         try await app.test(.live) { client in
